@@ -170,6 +170,52 @@ int main()
         std::cout << "Error al ejecutar la consulta SQL de Directivos\n";
     }
     std::cout << "+---------------+----------------------------------------+----------------------+\n";
+    SQLFreeStmt(hstmt, SQL_CLOSE);
+
+
+    // 4. Consulta final de Empleados detallados
+    std::cout << "\nTABLA EMPLEADOS DETALLES\n";
+    std::cout << "+-------------------+------------------------------+---------------------+--------------------+------------------------------+----------------------+---------------+\n";
+    std::cout << "| Numero Empleado  | Nombre Completo              | Fecha Nacimiento   | RFC                | Nombre de su Centro          | Puesto               | ¿Es directivo?|\n";
+    std::cout << "+-------------------+------------------------------+---------------------+--------------------+------------------------------+----------------------+---------------+\n";
+
+    SQLWCHAR sqlQueryFinal[] = 
+           L"SELECT e.NumeroEmpleado, "
+           L"(e.Nombre + ' ' + e.ApellidoPaterno + ' ' + e.ApellidoMaterno) AS NombreCompleto, "
+           L"e.FechaNacimiento, e.RFC, c.NombreCentro, e.Puesto, "
+           L"CASE WHEN d.DirectivoID IS NOT NULL THEN 1 ELSE 0 END AS EsDirectivo "
+           L"FROM Empleados e "
+           L"LEFT JOIN CentrosTrabajo c ON e.CentroTrabajoID = c.NumeroCentro "
+           L"LEFT JOIN Directivos d ON e.NumeroEmpleado = d.DirectivoID";
+
+    ret = SQLExecDirectW(hstmt, sqlQueryFinal, SQL_NTS);
+    if (ret == SQL_SUCCESS || ret == SQL_SUCCESS_WITH_INFO) {
+        SQLINTEGER numEmpleado, esDirectivo;
+        SQLCHAR nombreCompleto[200], fechaNacimiento[20], rfc[20], nombreCentro[100], puesto[50];
+        SQLLEN cbNumEmpleado = 0, cbNombreCompleto = 0, cbFechaNacimiento = 0, cbRFC = 0, cbNombreCentro = 0, cbPuesto = 0, cbEsDirectivo = 0;
+
+        SQLBindCol(hstmt, 1, SQL_C_LONG, &numEmpleado, 0, &cbNumEmpleado);
+        SQLBindCol(hstmt, 2, SQL_C_CHAR, nombreCompleto, sizeof(nombreCompleto), &cbNombreCompleto);
+        SQLBindCol(hstmt, 3, SQL_C_CHAR, fechaNacimiento, sizeof(fechaNacimiento), &cbFechaNacimiento);
+        SQLBindCol(hstmt, 4, SQL_C_CHAR, rfc, sizeof(rfc), &cbRFC);
+        SQLBindCol(hstmt, 5, SQL_C_CHAR, nombreCentro, sizeof(nombreCentro), &cbNombreCentro);
+        SQLBindCol(hstmt, 6, SQL_C_CHAR, puesto, sizeof(puesto), &cbPuesto);
+        SQLBindCol(hstmt, 7, SQL_C_LONG, &esDirectivo, 0, &cbEsDirectivo);
+
+        while (SQLFetch(hstmt) == SQL_SUCCESS) {
+            std::cout << "| " << std::setw(17) << std::left << numEmpleado
+                      << "| " << std::setw(28) << std::left << std::string((char*)nombreCompleto)
+                      << "| " << std::setw(21) << std::left << std::string((char*)fechaNacimiento)
+                      << "| " << std::setw(18) << std::left << std::string((char*)rfc)
+                      << "| " << std::setw(28) << std::left << std::string((char*)nombreCentro)
+                      << "| " << std::setw(22) << std::left << std::string((char*)puesto)
+                      << "| " << std::setw(13) << std::left << (esDirectivo == 1 ? "Si" : "No") << "|" << std::endl;
+        }
+    } else {
+        std::cout << "Error al ejecutar la consulta SQL detallada de empleados\n";
+    }
+    std::cout << "+-------------------+------------------------------+---------------------+--------------------+------------------------------+----------------------+---------------+\n";
+    SQLFreeStmt(hstmt, SQL_CLOSE);
 
     // Liberar el statement handle
     SQLFreeHandle(SQL_HANDLE_STMT, hstmt);
@@ -181,4 +227,5 @@ int main()
 
     return 0;
 }
+
 
